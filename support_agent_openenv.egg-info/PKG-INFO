@@ -1,0 +1,11 @@
+Metadata-Version: 2.4
+Name: support-agent-openenv
+Version: 0.1.0
+Summary: An OpenEnv SaaS Customer Support Agent Environment
+Author: Shibashis Das
+Requires-Python: >=3.10
+Requires-Dist: openenv-core
+Requires-Dist: pydantic
+Requires-Dist: fastapi
+Requires-Dist: uvicorn
+Requires-Dist: openai
