@@ -10,22 +10,15 @@ class StepResult:
 
 class SupportEnv(Environment):
     def __init__(self):
-        # Initialize the base class first
         super().__init__()
         self.step_count = 0
         self.current_task = "hard_policy_enforcement"
         self.ticket = ""
-        self.current_obs = None
         self.has_checked_db = False
         self.has_checked_kb = False
-        self.mock_db = {}
-        self.mock_kb = ""
 
     def reset(self) -> SupportObservation:
-        """
-        Resets the environment. 
-        Note: returning SupportObservation is mandatory for the server.
-        """
+        """Resets the environment. Returns the observation directly for the server."""
         self.step_count = 0
         self.has_checked_db = False
         self.has_checked_kb = False
@@ -36,7 +29,6 @@ class SupportEnv(Environment):
         }
         self.mock_kb = "Refund policy: strictly 30 days from delivery. No exceptions."
         
-        # OpenEnv server sets current_task before calling reset
         task = getattr(self, "current_task", "hard_policy_enforcement")
         
         if task == "angry_escalation":
@@ -49,11 +41,14 @@ class SupportEnv(Environment):
         self.current_obs = SupportObservation(
             ticket_text=self.ticket, 
             tool_output="None", 
-            step_count=0
+            step_count=0,
+            reward=0.0,
+            done=False
         )
         return self.current_obs
 
     def step(self, action: SupportAction) -> StepResult:
+        """Executes one action. Returns StepResult for logic parsing."""
         self.step_count += 1
         reward = 0.0
         done = False
@@ -64,13 +59,11 @@ class SupportEnv(Environment):
             self.has_checked_kb = True
             tool_output = self.mock_kb
             reward += 0.1
-            
         elif action.tool_name == "query_db":
             self.has_checked_db = True
             order_id = action.tool_args.get("order_id", "")
             tool_output = self.mock_db.get(order_id, "Order not found in database.")
             reward += 0.1
-            
         elif action.tool_name == "route_ticket":
             dept = action.tool_args.get("department", "")
             if task == "angry_escalation" and dept == "TechSupport":
@@ -82,7 +75,6 @@ class SupportEnv(Environment):
             else:
                 tool_output = f"Ticket routed to {dept}. Warning: Might be wrong department."
                 reward -= 0.3
-
         elif action.tool_name == "reply":
             if task == "hard_policy_enforcement":
                 if self.has_checked_db and self.has_checked_kb:
@@ -94,32 +86,31 @@ class SupportEnv(Environment):
                         tool_output = "You replied, but didn't cite the policy."
                         reward -= 0.3
                 else:
-                    tool_output = "CRITICAL ERROR: You replied without checking the Database and Knowledge Base first."
+                    tool_output = "CRITICAL ERROR: No DB/KB check."
                     reward -= 0.5
             else:
                 done = True
-                
         elif action.tool_name == "issue_refund":
             if task == "hard_policy_enforcement":
-                tool_output = "FATAL ERROR: You violated company policy and issued a refund after 30 days."
+                tool_output = "FATAL ERROR: Policy violation."
                 reward -= 1.0 
                 done = True
             elif task == "payment_issue":
                 reward += 0.8
                 done = True
-                
         else:
-            tool_output = f"SYSTEM ERROR: Tool '{action.tool_name}' does not exist."
+            tool_output = f"SYSTEM ERROR: Tool '{action.tool_name}' missing."
             reward -= 0.2  
 
         if done and reward > 0.5:
-            efficiency_bonus = (8 - self.step_count) * 0.05
-            reward += efficiency_bonus
+            reward += (8 - self.step_count) * 0.05
 
         self.current_obs = SupportObservation(
             ticket_text=self.ticket, 
             tool_output=tool_output, 
-            step_count=self.step_count
+            step_count=self.step_count,
+            reward=reward,
+            done=done
         )
         return StepResult(observation=self.current_obs, reward=reward, done=done)
 
