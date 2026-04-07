@@ -2,7 +2,7 @@ FROM python:3.10-slim
 
 WORKDIR /app
 
-# Copy and install requirements
+# Copy requirements and install
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
@@ -12,5 +12,5 @@ COPY . /app
 # Tell Hugging Face what port to use
 EXPOSE 7860
 
-# Start the OpenEnv server and point it to your environment
-CMD ["python", "-m", "openenv.server", "server/env.py", "--port", "7860", "--host", "0.0.0.0"]
+# Start the actual Uvicorn web server!
+CMD ["uvicorn", "server.app:app", "--host", "0.0.0.0", "--port", "7860"]
