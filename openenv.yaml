@@ -1,0 +1,10 @@
+name: "support_agent"
+version: "1.0.0"
+description: "Tier-1 Omni-Channel SaaS Support Resolver with noisy inputs and strict policy enforcement."
+tasks:
+  - name: "angry_escalation"
+    difficulty: "easy"
+  - name: "payment_issue"
+    difficulty: "medium"
+  - name: "hard_policy_enforcement"
+    difficulty: "hard"
