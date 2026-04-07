@@ -9,8 +9,11 @@ class StepResult:
     done: bool
 
 class SupportEnv(Environment):
-    def reset(self) -> StepResult:
-        # Standard initialization
+    def reset(self) -> SupportObservation:
+        """
+        Resets the environment for a new episode.
+        IMPORTANT: Must return SupportObservation, NOT StepResult.
+        """
         self.step_count = 0
         self.has_checked_db = False
         self.has_checked_kb = False
@@ -22,7 +25,6 @@ class SupportEnv(Environment):
         self.mock_kb = "Refund policy: strictly 30 days from delivery. No exceptions."
         
         # Determine ticket based on task
-        # Fallback to hard_policy_enforcement if current_task isn't set
         task = getattr(self, "current_task", "hard_policy_enforcement")
         
         if task == "angry_escalation":
@@ -37,9 +39,16 @@ class SupportEnv(Environment):
             tool_output="None", 
             step_count=0
         )
-        return StepResult(observation=self.current_obs, reward=0.0, done=False)
+        
+        # The server calls .model_dump() on this return value.
+        # SupportObservation (Pydantic) has it; StepResult (Dataclass) does not.
+        return self.current_obs
 
     def step(self, action: SupportAction) -> StepResult:
+        """
+        Executes one action in the environment.
+        Returns StepResult (Observation, Reward, Done).
+        """
         self.step_count += 1
         reward = 0.0
         done = False
@@ -72,7 +81,6 @@ class SupportEnv(Environment):
         elif action.tool_name == "reply":
             if task == "hard_policy_enforcement":
                 if self.has_checked_db and self.has_checked_kb:
-                    # Check if they actually explained the policy
                     msg = str(action.tool_args).lower()
                     if "30" in msg or "policy" in msg:
                         reward += 0.8
@@ -99,7 +107,7 @@ class SupportEnv(Environment):
             tool_output = f"SYSTEM ERROR: Tool '{action.tool_name}' does not exist."
             reward -= 0.2  
 
-        # Efficiency Bonus!
+        # Efficiency Bonus
         if done and reward > 0.5:
             efficiency_bonus = (8 - self.step_count) * 0.05
             reward += efficiency_bonus
