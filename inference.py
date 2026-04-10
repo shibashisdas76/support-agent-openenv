@@ -10,6 +10,10 @@ API_BASE_URL = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
 MODEL_NAME = os.getenv("MODEL_NAME", "Qwen/Qwen2.5-72B-Instruct")
 API_KEY = os.getenv("HF_TOKEN")
 
+# MANDATORY CHECK: Required by Hackathon Guidelines
+if API_KEY is None:
+    raise ValueError("HF_TOKEN environment variable is required")
+
 # UPDATED: Added the specific conclusion logic to prevent the "infinite loop"
 SYSTEM_PROMPT = """You are an expert SaaS customer support agent. 
 
@@ -30,6 +34,7 @@ AVAILABLE TOOLS:
 INSTRUCTIONS:
 Think step-by-step. Write your reasoning first, then the JSON tool call.
 """
+
 def extract_json(llm_output: str) -> dict:
     try:
         # First, try to use Regex to find the tool dictionary exactly
@@ -55,7 +60,9 @@ async def main():
     
     for task in tasks:
         env.current_task = task
-        print(f"\n[START] task={task} env=support_agent", flush=True)
+        
+        # FORMAT FIX: Removed '\n' and added 'model=' per guidelines
+        print(f"[START] task={task} env=support_agent model={MODEL_NAME}", flush=True)
         
         # NOTE: reset() and step() are synchronous based on our previous server-compatibility fixes
         obs = env.reset() 
@@ -102,7 +109,10 @@ async def main():
             
         score = max(0.0, min(sum(rewards), 1.0))
         success = score > 0.5
-        print(f"[END] success={str(success).lower()} steps={step} score={score:.3f}", flush=True)
+        
+        # FORMAT FIX: Created comma-separated rewards string formatted to 2 decimal places
+        rewards_str = ",".join([f"{r:.2f}" for r in rewards])
+        print(f"[END] success={str(success).lower()} steps={step} rewards={rewards_str}", flush=True)
 
 if __name__ == "__main__":
     asyncio.run(main())
