@@ -17,7 +17,7 @@ if API_KEY is None:
     raise ValueError("HF_TOKEN environment variable is required")
 
 # ==============================
-# 🔥 UPDATED SYSTEM PROMPT (CRITICAL FIX)
+# SYSTEM PROMPT (UNCHANGED)
 # ==============================
 SYSTEM_PROMPT = """You are a deterministic SaaS customer support agent. You MUST follow rules strictly.
 
@@ -120,7 +120,7 @@ def extract_json(llm_output: str) -> dict:
         return {"tool_name": "reply", "tool_args": {"message": "Invalid JSON format."}}
 
 # ==============================
-# MAIN LOOP (UNCHANGED)
+# MAIN LOOP (ONLY SCORE FIXED)
 # ==============================
 async def main():
     client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
@@ -182,7 +182,10 @@ async def main():
                     flush=True
                 )
 
-            score = max(0.0, min(sum(rewards), 1.0))
+            # 🔥 FIX: STRICT (0,1) RANGE
+            raw_score = sum(rewards)
+            score = min(max(raw_score, 0.01), 0.99)
+
             success = score > 0.5
 
         except Exception as e:
