@@ -82,7 +82,7 @@ AVAILABLE TOOLS
 2. {"tool_name": "query_db", "tool_args": {"order_id": "..."}}
 3. {"tool_name": "route_ticket", "tool_args": {"department": "TechSupport/Billing"}}
 4. {"tool_name": "reply", "tool_args": {"message": "..."}}
-5. {"tool_name": "issue_refund", "tool_args": {"order_id": "..."}} 
+5. {"tool_name": "issue_refund", "tool_args": {"order_id": "..."}}
 
 ==============================
 OUTPUT FORMAT (STRICT)
@@ -182,16 +182,15 @@ async def main():
                     flush=True
                 )
 
-            # 🔥 FINAL VALIDATOR FIX (STRICT (0,1))
+            # 🔥 FIXED FINAL SCORE (STRICT (0,1))
             total = sum(rewards)
 
             if total >= 1.0:
-                rewards[-1] -= (total - 0.99)
-
+                total = 0.99
             elif total <= 0.0:
-                rewards[-1] += 0.01
+                total = 0.01
 
-            success = sum(rewards) > 0.5
+            success = total > 0.5
 
         except Exception as e:
             print(
@@ -203,7 +202,7 @@ async def main():
         finally:
             rewards_str = ",".join([f"{r:.2f}" for r in rewards])
             print(
-                f"[END] success={str(success).lower()} steps={step} rewards={rewards_str}",
+                f"[END] success={str(success).lower()} steps={step} score={total:.2f} rewards={rewards_str}",
                 flush=True
             )
 
